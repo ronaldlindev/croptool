@@ -1,4 +1,5 @@
 # Croptool Instructions
+## navigate to dist for relevant files
 
 ### Basic Operations:
 1. **Specify input files:** `CTRL + O`
@@ -13,13 +14,14 @@
 - Press `0` to return image to original brightness
 
 #  說明
+## 相關文件請參考 dist/
 
 ### 基本功能
 
 1. **指定輸入檔案:** `CTRL + O`
 2. **指定輸出文件:** `CTRL + S`
-3. **開始/停止裁切：** 、Left Click、
-4. **另存裁切：** 、ENTER、
+3. **開始/停止裁切：** `Left Click`
+4. **另存裁切：** `ENTER`
 
 ### 額外功能
 - 啟用放大鏡：`M`
