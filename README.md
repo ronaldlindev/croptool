@@ -1,4 +1,5 @@
 # Croptool Instructions
+## navigate to dist for relevant files
 
 ### Basic Operations:
 1. **Specify input files:** `CTRL + O`
@@ -13,6 +14,7 @@
 - Press `0` to return image to original brightness
 
 #  說明
+## 相關文件請參考 dist/
 
 ### 基本功能
 
