@@ -25,5 +25,5 @@
 - 啟用放大鏡：`M`
 - 上下張：`Left Arrow’ / 'Right Arrow`
 - 調亮度: `Up Arrow` / `Down Arrow`
-- 會還原本亮度： `0`
+- 回到原本亮度： `0`
    
