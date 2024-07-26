@@ -184,6 +184,8 @@ class croptool:
         if not self.is_magnify:
             self.magnify_window = tk.Toplevel(self.root)
             self.magnify_canvas = tk.Canvas(self.magnify_window)
+            self.magnify_window.attributes("-topmost", True)
+            self.canvas.focus_set()
             self.is_magnify = True
         else:
             self.magnify_window.destroy()
