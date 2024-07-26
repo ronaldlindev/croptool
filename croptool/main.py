@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk, ImageOps, ImageEnhance
 import os
 
 
@@ -28,10 +28,12 @@ class croptool:
         self.magnify_canvas = None
         self.magnified_image = None
         self.magnified_tk_image = None
+        self.bright_image = None
         
 
         self.PADDING_FACTOR = 0.9
         self.ZOOM_FACTOR = 0.20
+        self.bright_factor = 1
         # tracking user input
         self.canvas.bind('<Motion>', self.motion)
         self.canvas.bind('<Button-1>', self.toggle_draw)
@@ -47,6 +49,9 @@ class croptool:
         self.root.bind('<Right>', self.next)
 
         self.root.bind('<m>', self.magnify_toggle)
+        self.root.bind('<Up>', self.brighten)
+        self.root.bind('<Down>', self.brighten)
+        self.root.bind('0', self.brighten)
 
         # menu loop
         self.root.mainloop()
@@ -54,7 +59,6 @@ class croptool:
     
 
     def toggle_draw(self, event: tk.Event):
-        print(event.x, event.y)
         if not self.is_draw:
             self.is_draw = True
             self.x1 = event.x
@@ -82,7 +86,6 @@ class croptool:
             x = (offsetx / self.resized_image.width) * self.pil_image.width
             y = (offsety / self.resized_image.height) * self.pil_image.height
            
-            # some black magic to find a square
 
             padding_pixels = ((self.pil_image.width + self.pil_image.height) / 2) * self.ZOOM_FACTOR
 
@@ -92,24 +95,24 @@ class croptool:
             y2 = min(y + padding_pixels, self.pil_image.height)
 
             self.magnified_image = self.pil_image.crop((x1, y1, x2, y2))
-            self.magnified_tk_image = ImageTk.PhotoImage(self.magnified_image)
-            magnified_canvas_width = self.magnify_canvas.winfo_width()
-            magnified_canvas_height = self.magnify_canvas.winfo_height()
+            self.magnified_tk_image = ImageTk.PhotoImage(
+                ImageEnhance.Brightness(self.magnified_image).enhance(self.bright_factor))
             
-            magnified_image_x = (magnified_canvas_width - self.magnified_tk_image.width()) / 2
-            magnified_image_y = (magnified_canvas_height - self.magnified_tk_image.height()) / 2
-
-            self.magnify_canvas.create_image(magnified_image_x, magnified_image_y, anchor=tk.NW, image=self.magnified_tk_image)
+            canvas_width = self.magnify_canvas.winfo_width()
+            canvas_height = self.magnify_canvas.winfo_height()
+            img_width, img_height = self.magnified_tk_image.width(), self.magnified_tk_image.height()
+            imagex = (canvas_width - img_width) / 2
+            imagey = (canvas_height - img_height) / 2
+            self.magnify_canvas.create_image(imagex, imagey, anchor = tk.NW, image = self.magnified_tk_image)
             self.magnify_canvas.update()
             self.magnify_canvas.pack()
-            
 
 
 
     def crop(self, event: tk.Event):
         if self.can_crop():
             image_name = self.input_paths[self.image_idx].split('/')[-1]
-            self.pil_image.crop(self.find_image_coord()).save(
+            Image.open(self.input_paths[self.image_idx]).crop(self.find_image_coord()).save(
                 os.path.join(self.output_path, 'cropped' + image_name))
             self.next(None)
         else:
@@ -126,7 +129,7 @@ class croptool:
         offset_x = x1 - self.imagex
         offset_y = y1 - self.imagey
 
-        # scale back up to originial image
+        # scale back up to original image
         
         return (
             (offset_x / self.resized_image.width) * self.pil_image.width,
@@ -137,23 +140,12 @@ class croptool:
 
         
     def load_image(self, idx: int):
-        self.canvas.delete("all")
         path = self.input_paths[idx]
         self.root.title(path)
         self.pil_image = Image.open(path)
-        # self.resized_image = ImageOps.contain(self.pil_image, ((int(self.PADDING_FACTOR * self.root.winfo_screenwidth()), int(self.PADDING_FACTOR * self.root.winfo_screenheight()))))
         resize_factor = max((self.pil_image.width / self.root.winfo_screenwidth()), (self.pil_image.height / self.root.winfo_height()))
         self.resized_image = self.pil_image.resize((int((self.pil_image.width / resize_factor) * self.PADDING_FACTOR), int((self.pil_image.height / resize_factor) * self.PADDING_FACTOR)))
-        self.tk_image = ImageTk.PhotoImage(self.resized_image)
-
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-        img_width, img_height = self.tk_image.width(), self.tk_image.height()
-        self.imagex = (canvas_width - img_width) / 2
-        self.imagey = (canvas_height - img_height) / 2
-        self.canvas.create_image(self.imagex, self.imagey, anchor=tk.NW, image=self.tk_image)
-        self.canvas.update()
-        # self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
+        self.update_image()
           
    
     def get_input_paths(self, event: tk.Event):
@@ -176,6 +168,7 @@ class croptool:
             self.load_image(self.image_idx)
         else:
             self.error_thrower('no previous image')
+
     def can_crop(self) -> bool:
         return bool(self.output_path) and not self.is_draw 
     
@@ -189,17 +182,38 @@ class croptool:
         ZOOM_FACTOR = 0.10
         if not self.is_magnify:
             self.magnify_window = tk.Toplevel(self.root)
-            self.magnify_canvas = tk.Canvas(self.magnify_window,)
+            self.magnify_canvas = tk.Canvas(self.magnify_window)
             self.is_magnify = True
         else:
             self.magnify_window.destroy()
             self.is_magnify = False
 
-
-            
+    def brighten(self, event: tk.Event):
+        if event.keysym == 'Up': # up arrow keycode
+            self.bright_factor += 0.2
+        elif event.keysym == 'Down':
+            self.bright_factor -= 0.2
+        else: 
+            self.bright_factor = 1.0
+        self.update_image()
+        self.motion(event)
+       
         
+    def update_image(self):
+        self.canvas.delete("bright_image")
+        self.bright_image = ImageEnhance.Brightness(self.resized_image).enhance(self.bright_factor)
+        self.tk_image = ImageTk.PhotoImage(self.bright_image)
+       
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        img_width, img_height = self.tk_image.width(), self.tk_image.height()
+        self.imagex = (canvas_width - img_width) / 2
+        self.imagey = (canvas_height - img_height) / 2
+        self.canvas.create_image(self.imagex, self.imagey, anchor = tk.NW, image = self.tk_image, tag = 'bright_image')
+        self.canvas.tag_raise('crop_rect')
+        self.canvas.update()
 
 
 
-
-croptool()
+if __name__ == '__main__':
+    croptool()
